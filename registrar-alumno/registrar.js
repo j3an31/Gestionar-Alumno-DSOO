@@ -1,137 +1,157 @@
-// Calcular créditos totales y actualizar interfaz
-        const checkboxes = document.querySelectorAll('#cursosDisponibles input[type="checkbox"]');
-        const creditosTotalesEl = document.getElementById('creditosTotales');
-        const alertaCreditos = document.getElementById('alertaCreditos');
-        const listaCursos = document.getElementById('listaCursosSeleccionados');
-        const progresoBar = document.getElementById('progresoBar');
-
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', calcularCreditos);
+// Capturar el envío del formulario
+document.getElementById('formularioAlumno').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Validar que no exceda los créditos
+    const creditosTotales = parseInt(document.getElementById('creditosTotales').textContent);
+    if (creditosTotales > 24) {
+        alert('❌ No puedes matricular más de 24 créditos');
+        return;
+    }
+    
+    if (creditosTotales === 0) {
+        alert('❌ Debes seleccionar al menos un curso');
+        return;
+    }
+    
+    // Recopilar los cursos seleccionados
+    const cursosSeleccionados = [];
+    document.querySelectorAll('#cursosDisponibles input[type="checkbox"]:checked').forEach(checkbox => {
+        const cursoItem = checkbox.closest('.curso-item');
+        const nombreCurso = cursoItem.querySelector('.curso-nombre').textContent;
+        
+        cursosSeleccionados.push({
+            codigo: checkbox.value,
+            nombre: nombreCurso,
+            creditos: parseInt(checkbox.dataset.creditos)
         });
-
-        function calcularCreditos() {
-            let total = 0;
-            let cursosSeleccionados = [];
-
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    const creditos = parseInt(checkbox.getAttribute('data-creditos'));
-                    total += creditos;
-                    
-                    const cursoItem = checkbox.closest('.curso-item');
-                    const nombreCurso = cursoItem.querySelector('.curso-nombre').textContent;
-                    const codigoCurso = cursoItem.querySelector('.curso-codigo').textContent;
-                    const creditosCurso = cursoItem.querySelector('.curso-creditos').textContent;
-                    cursosSeleccionados.push({ nombre: nombreCurso, codigo: codigoCurso, creditos: creditosCurso });
-                }
-            });
-
-            creditosTotalesEl.textContent = total;
-
-            // Actualizar barra de progreso
-            const porcentaje = Math.min((total / 24) * 100, 100);
-            progresoBar.style.width = porcentaje + '%';
-
-            // Mostrar alerta si excede el límite
-            if (total > 24) {
-                alertaCreditos.style.display = 'block';
-                creditosTotalesEl.style.color = '#dc2626';
-                progresoBar.style.background = 'linear-gradient(90deg, #dc2626 0%, #b91c1c 100%)';
-            } else {
-                alertaCreditos.style.display = 'none';
-                creditosTotalesEl.style.color = '#1a5f3f';
-                progresoBar.style.background = 'linear-gradient(90deg, #2d8659 0%, #1a5f3f 100%)';
-            }
-
-            // Actualizar lista de cursos seleccionados
-            if (cursosSeleccionados.length === 0) {
-                listaCursos.innerHTML = '<li class="vacio">No ha seleccionado ningún curso</li>';
-            } else {
-                listaCursos.innerHTML = cursosSeleccionados.map(curso => 
-                    `<li><strong>${curso.nombre}</strong><br>${curso.codigo} - ${curso.creditos}</li>`
-                ).join('');
-            }
-        }
-
-        // Manejar envío del formulario
-        document.getElementById('formularioAlumno').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const creditos = parseInt(creditosTotalesEl.textContent);
-            if (creditos > 24) {
-                alert('⚠️ Error: No puede inscribirse en más de 24 créditos por ciclo académico.\n\nPor favor, reduzca su carga académica.');
-                return;
-            }
-
-            if (creditos === 0) {
-                alert('⚠️ Error: Debe seleccionar al menos un curso para completar el registro.');
-                return;
-            }
-
-            // Recopilar datos del formulario
-            const formData = {
-                datosPersonales: {
-                    dni: document.getElementById('dni').value,
-                    nombres: document.getElementById('nombres').value,
-                    apellidos: document.getElementById('apellidos').value,
-                    fechaNacimiento: document.getElementById('fechaNacimiento').value,
-                    genero: document.querySelector('input[name="genero"]:checked').value
-                },
-                datosContacto: {
-                    telefono: document.getElementById('telefono').value,
-                    email: document.getElementById('email').value,
-                    direccion: document.getElementById('direccion').value,
-                    distrito: document.getElementById('distrito').value,
-                    ciudad: document.getElementById('ciudad').value
-                },
-                datosAcademicos: {
-                    carrera: document.getElementById('carrera').value,
-                    sede: document.getElementById('sede').value,
-                    tipoIngreso: document.getElementById('tipoIngreso').value
-                },
-                matricula: {
-                    cursos: Array.from(checkboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => ({
-                            codigo: cb.value,
-                            creditos: parseInt(cb.getAttribute('data-creditos'))
-                        })),
-                    creditosTotales: creditos
-                }
-            };
-
-            console.log('═══════════════════════════════════════');
-            console.log('📋 DATOS DEL NUEVO ALUMNO REGISTRADO');
-            console.log('═══════════════════════════════════════');
-            console.log(formData);
-            console.log('═══════════════════════════════════════');
-            
-            alert('✅ ¡Registro Exitoso!\n\n' +
-                  'El alumno ha sido registrado correctamente en el sistema.\n\n' +
-                  'Nombre: ' + formData.datosPersonales.nombres + ' ' + formData.datosPersonales.apellidos + '\n' +
-                  'DNI: ' + formData.datosPersonales.dni + '\n' +
-                  'Carrera: ' + document.getElementById('carrera').selectedOptions[0].text + '\n' +
-                  'Créditos matriculados: ' + creditos + '\n\n' +
-                  'Revise la consola (F12) para ver todos los detalles.');
-            
-            // Opcional: Limpiar formulario después del registro
-            // limpiarFormulario();
+    });
+    
+    // Crear FormData con todos los datos del formulario
+    const formData = new FormData(this);
+    formData.append('cursosSeleccionados', JSON.stringify(cursosSeleccionados));
+    formData.append('creditosTotales', creditosTotales);
+    
+    // Mostrar mensaje de carga
+    const btnSubmit = this.querySelector('button[type="submit"]');
+    const textoOriginal = btnSubmit.innerHTML;
+    btnSubmit.innerHTML = '<span>⏳</span> Guardando...';
+    btnSubmit.disabled = true;
+    
+    try {
+        // Enviar datos al servidor
+        const response = await fetch('procesar_registro.php', {
+            method: 'POST',
+            body: formData
         });
-
-        function limpiarFormulario() {
-            if (confirm('¿Está seguro de que desea limpiar todos los campos del formulario?\n\nEsta acción no se puede deshacer.')) {
-                document.getElementById('formularioAlumno').reset();
-                checkboxes.forEach(cb => cb.checked = false);
-                calcularCreditos();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
+        
+        // Verificar si la respuesta HTTP es exitosa
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
         }
-
-        function cancelar() {
-            if (confirm('¿Está seguro de que desea cancelar el registro?\n\nTodos los datos ingresados se perderán.')) {
-                window.location.href = 'index.html'; // Cambiar por la URL de tu página principal
-            }
+        
+        // Verificar que la respuesta sea JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const textoRespuesta = await response.text();
+            console.error('Respuesta del servidor (no JSON):', textoRespuesta);
+            throw new Error("El servidor no devolvió JSON válido. Revisa la consola para más detalles.");
         }
+        
+        // Parsear la respuesta JSON
+        const data = await response.json();
+        console.log('Respuesta del servidor:', data);
+        
+        // Procesar la respuesta
+        if (data.success) {
+            alert('✅ ' + data.message + '\n\nAlumno registrado con ID: ' + data.id);
+            // Limpiar el formulario
+            limpiarFormulario();
+            // Opcional: redirigir a otra página después de 1 segundo
+            // setTimeout(() => { window.location.href = 'home.html'; }, 1000);
+        } else {
+            alert('❌ Error: ' + (data.message || 'Error desconocido'));
+        }
+        
+    } catch (error) {
+        console.error('Error detallado:', error);
+        
+        // Mensaje de error más específico
+        let mensajeError = '❌ Error al procesar la solicitud:\n\n';
+        
+        if (error.message.includes('HTTP')) {
+            mensajeError += '• Problema de conexión con el servidor\n';
+            mensajeError += '• Verifica que Apache esté corriendo en XAMPP\n';
+            mensajeError += '• Verifica que el archivo procesar_registro.php exista\n';
+        } else if (error.message.includes('JSON')) {
+            mensajeError += '• El servidor no respondió correctamente\n';
+            mensajeError += '• Revisa la consola (F12) para ver la respuesta completa\n';
+            mensajeError += '• Verifica que procesar_registro.php devuelva JSON válido\n';
+        } else if (error.message.includes('Failed to fetch')) {
+            mensajeError += '• No se pudo conectar con el servidor\n';
+            mensajeError += '• Verifica que XAMPP esté corriendo\n';
+            mensajeError += '• Verifica la URL del archivo PHP\n';
+        } else {
+            mensajeError += error.message;
+        }
+        
+        alert(mensajeError);
+        
+    } finally {
+        // Restaurar botón siempre (éxito o error)
+        btnSubmit.innerHTML = textoOriginal;
+        btnSubmit.disabled = false;
+    }
+});
 
-        // Inicializar
-        calcularCreditos();
+// Función para limpiar el formulario
+function limpiarFormulario() {
+    const formulario = document.getElementById('formularioAlumno');
+    if (formulario) {
+        formulario.reset();
+    }
+    
+    const creditosTotales = document.getElementById('creditosTotales');
+    if (creditosTotales) {
+        creditosTotales.textContent = '0';
+    }
+    
+    const progresoBar = document.getElementById('progresoBar');
+    if (progresoBar) {
+        progresoBar.style.width = '0%';
+    }
+    
+    const listaCursos = document.getElementById('listaCursosSeleccionados');
+    if (listaCursos) {
+        listaCursos.innerHTML = '<li class="vacio">No ha seleccionado ningún curso</li>';
+    }
+    
+    // Desmarcar todos los checkboxes
+    document.querySelectorAll('#cursosDisponibles input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+    });
+}
+
+// Función para cancelar
+function cancelar() {
+    if (confirm('¿Estás seguro de que deseas cancelar? Se perderán todos los datos ingresados.')) {
+        window.location.href = 'home.html';
+    }
+}
+
+// Validación adicional: Prevenir envío múltiple
+let enviando = false;
+
+document.getElementById('formularioAlumno').addEventListener('submit', function(e) {
+    if (enviando) {
+        e.preventDefault();
+        alert('⏳ Ya se está procesando una solicitud. Por favor espera.');
+        return false;
+    }
+    enviando = true;
+    
+    // Resetear después de 10 segundos por seguridad
+    setTimeout(() => {
+        enviando = false;
+    }, 10000);
+});
